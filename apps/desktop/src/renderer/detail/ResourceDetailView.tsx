@@ -37,6 +37,7 @@ import { DetailHeader } from "./DetailHeader";
 import { LogViewer } from "./LogViewer";
 import { MutationDiffView } from "./MutationDiffView";
 import { OverviewTab, type PodsPreview } from "./OverviewTab";
+import { extractForwardPorts } from "./port-forward-ports";
 import { resourceActionsFor, type ResourceActionId } from "./resource-actions";
 import { formatTimestamp } from "./resource-format";
 import { HighlightedYaml } from "./yaml-highlight";
@@ -169,6 +170,13 @@ export function ResourceDetailView({
   });
   // Live CPU/memory for a single Pod; the hook idles (no polls) for other kinds.
   const isPod = row?.kind === "Pod";
+  const isService = row?.kind === "Service";
+  // Forwardable TCP ports from the live YAML; service and workload targets
+  // resolve to a backing pod in the core before the SPDY dial.
+  const forwardPorts = useMemo(
+    () => (detail && row && (isPod || isService || isWorkloadLogKind(row.kind)) ? extractForwardPorts(row.kind, detail.yaml) : []),
+    [detail, row, isPod, isService],
+  );
   const metrics = usePodMetrics(
     contextId,
     isPod ? row?.namespace ?? "" : "",
@@ -293,6 +301,8 @@ export function ResourceDetailView({
               related={related}
               pods={podsPreview}
               metrics={isPod ? metrics : undefined}
+              forwardPorts={forwardPorts}
+              contextId={contextId}
               onOpenEvents={() => setTab("events")}
               onOpenRelated={() => setTab("related")}
               onOpenPods={workload ? () => setTab("pods") : undefined}
