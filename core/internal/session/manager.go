@@ -289,9 +289,17 @@ func (m *Manager) PortForward(ctx context.Context, contextID, namespace, name st
 }
 
 func upstreamURL(host, namespace, name string) *url.URL {
+	scheme := "https"
+	trimmed := host
+	if strings.HasPrefix(host, "http://") {
+		scheme = "http"
+		trimmed = strings.TrimPrefix(host, "http://")
+	} else {
+		trimmed = strings.TrimPrefix(host, "https://")
+	}
 	return &url.URL{
-		Scheme: "https",
-		Host:   strings.TrimPrefix(strings.TrimPrefix(host, "https://"), "http://"),
+		Scheme: scheme,
+		Host:   trimmed,
 		Path:   fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, name),
 	}
 }
