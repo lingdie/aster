@@ -240,6 +240,8 @@ export interface PodMetric {
 export interface PodPortForward {
   id: string;
   localPort: number;
+  /** The backing pod for service/workload forwards. */
+  pod?: string;
 }
 
 export interface PortForwardStartRequest {
@@ -247,6 +249,10 @@ export interface PortForwardStartRequest {
   namespace: string;
   name: string;
   podPort: number;
+  /** What name refers to: pod (default), service, or workload. */
+  target?: "pod" | "service" | "workload";
+  /** Workload kind for target=workload. */
+  kind?: string;
 }
 
 export type MutationOperation = "scale" | "image" | "restart" | "yaml" | "create" | "delete";
