@@ -180,11 +180,21 @@ type PortForwardRequest struct {
 	Namespace string `json:"namespace"`
 	Name      string `json:"name"`
 	PodPort   int64  `json:"podPort"`
+	// Target selects what Name refers to: a Pod directly (default), a
+	// Service resolved through its EndpointSlices, or a selector-based
+	// workload resolved to its most active pod.
+	Target string `json:"target,omitempty"`
+	// Kind names the workload kind for target=workload (Deployment,
+	// StatefulSet, DaemonSet, ReplicaSet).
+	Kind string `json:"kind,omitempty"`
 }
 
 type PortForwardResponse struct {
 	ID        string `json:"id"`
 	LocalPort int    `json:"localPort"`
+	// Pod carries the backing pod for service/workload forwards so the UI
+	// can show what actually terminates the connection.
+	Pod string `json:"pod,omitempty"`
 }
 
 type PortForwardStopRequest struct {

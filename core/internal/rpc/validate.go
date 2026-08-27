@@ -237,6 +237,20 @@ func validatePortForwardRequest(value resources.PortForwardRequest) error {
 	if value.PodPort < 1 || value.PodPort > 65_535 {
 		return fmt.Errorf("podPort must be between 1 and 65535")
 	}
+	switch value.Target {
+	case "", "pod", "service", "workload":
+	default:
+		return fmt.Errorf("target must be pod, service, or workload")
+	}
+	if value.Target == "workload" {
+		switch value.Kind {
+		case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet":
+		default:
+			return fmt.Errorf("kind must be a selector-based workload for target=workload")
+		}
+	} else if value.Kind != "" {
+		return fmt.Errorf("kind is only valid with target=workload")
+	}
 	return nil
 }
 
