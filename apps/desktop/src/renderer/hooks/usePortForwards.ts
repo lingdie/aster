@@ -62,6 +62,9 @@ export async function startPortForward(request: PortForwardStartRequest): Promis
   state.entries.set(key, entry);
   notify();
   try {
+    if (!request.localPort) {
+      request = { ...request, localPort: 0 };
+    }
     const response: PodPortForward = await desktop.resources.portForwardStart(request);
     entry.id = response.id;
     entry.localPort = response.localPort;

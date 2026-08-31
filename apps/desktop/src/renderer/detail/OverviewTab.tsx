@@ -37,10 +37,6 @@ export interface OverviewTabProps {
   pods?: PodsPreview;
   /** Live CPU/memory sampling; present for Pod details. */
   metrics?: PodMetricsState;
-  /** Forwardable TCP ports parsed from the live YAML. */
-  forwardPorts: ForwardPort[];
-  /** Active cluster context; forwards are bound to the context they start in. */
-  contextId: string;
   onOpenEvents(): void;
   onOpenRelated(): void;
   onOpenPods?(): void;
@@ -58,8 +54,6 @@ export function OverviewTab({
   related,
   pods,
   metrics,
-  forwardPorts,
-  contextId,
   onOpenEvents,
   onOpenRelated,
   onOpenPods,
@@ -108,16 +102,6 @@ export function OverviewTab({
 
       <div className="resource-overview-body">
         <div className="resource-overview-main">
-          {forwardPorts.length > 0 && (
-            <PortForwardSection
-              contextId={contextId}
-              namespace={row.namespace}
-              name={row.name}
-              kind={row.kind}
-              ports={forwardPorts}
-            />
-          )}
-
           {metrics && (
             <PodUsageChart metrics={metrics} />
           )}

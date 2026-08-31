@@ -321,7 +321,7 @@ const MOCK_DESKTOP_API = `
         return () => timers.forEach(clearTimeout);
       },
       exec: async () => ({ stdout: "", stderr: "" }),
-      portForwardStart: async () => ({ id: "pf-1", localPort: 12_345 }),
+      portForwardStart: async (request) => ({ id: "pf-1", localPort: request.localPort || 12_345 }),
       portForwardStop: async () => undefined,
       mutate: async (request) => {
         // Mirror the API server's optimistic concurrency: the live object sits
@@ -1343,15 +1343,24 @@ test("pod detail forwards a declared port and stops it", async ({ page }) => {
   const detail = page.getByTestId("resource-detail-view");
   await expect(detail).toBeVisible({ timeout: 15_000 });
 
-  // The overview lists the declared TCP port with a Forward affordance.
+  // Ports is its own tab, level with Overview and YAML.
+  await detail.getByRole("tab", { name: "Ports" }).click();
   const section = page.getByTestId("port-forward-section");
   await expect(section).toBeVisible({ timeout: 15_000 });
   const portRow = section.getByTestId("port-forward-row").first();
   await expect(portRow).toContainText("app");
   await expect(portRow).toContainText("80/TCP");
 
+  // An empty local port falls back to a random free port first.
   await portRow.getByTestId("port-forward-start").click();
   await expect(portRow.getByTestId("port-forward-local")).toContainText("localhost:12345");
+  await portRow.getByTestId("port-forward-stop").click();
+  await expect(portRow.getByTestId("port-forward-start")).toBeVisible();
+
+  // A custom local port binds exactly that port.
+  await portRow.getByLabel("Local port for app 80").fill("12346");
+  await portRow.getByTestId("port-forward-start").click();
+  await expect(portRow.getByTestId("port-forward-local")).toContainText("localhost:12346");
 
   await portRow.getByTestId("port-forward-stop").click();
   await expect(portRow.getByTestId("port-forward-start")).toBeVisible();

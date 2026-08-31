@@ -37,6 +37,7 @@ import { DetailHeader } from "./DetailHeader";
 import { LogViewer } from "./LogViewer";
 import { MutationDiffView } from "./MutationDiffView";
 import { OverviewTab, type PodsPreview } from "./OverviewTab";
+import { PortForwardSection } from "./PortForwardSection";
 import { extractForwardPorts } from "./port-forward-ports";
 import { resourceActionsFor, type ResourceActionId } from "./resource-actions";
 import { formatTimestamp } from "./resource-format";
@@ -49,7 +50,7 @@ type MutationDraft = Omit<
   "contextId" | "resourceKind" | "namespace" | "name"
 >;
 
-type DetailTab = "overview" | "pods" | "yaml" | "events" | "related" | "logs";
+type DetailTab = "overview" | "ports" | "pods" | "yaml" | "events" | "related" | "logs";
 type OperationDialog = "scale" | "image" | null;
 
 /** Static catalog entry; module-level so the pods hook sees a stable reference. */
@@ -171,6 +172,9 @@ export function ResourceDetailView({
   // Live CPU/memory for a single Pod; the hook idles (no polls) for other kinds.
   const isPod = row?.kind === "Pod";
   const isService = row?.kind === "Service";
+  // The Ports tab serves every kind whose forward the core can resolve; it
+  // stays visible even without declared ports (manual input covers those).
+  const canForward = Boolean(row && (isPod || isService || isWorkloadLogKind(row.kind)));
   // Forwardable TCP ports from the live YAML; service and workload targets
   // resolve to a backing pod in the core before the SPDY dial.
   const forwardPorts = useMemo(
@@ -276,6 +280,7 @@ export function ResourceDetailView({
       >
         <TabsList className="resource-detail-tab-list" aria-label="Resource details">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          {canForward && <TabsTrigger value="ports">Ports</TabsTrigger>}
           {workload && (
             <TabsTrigger value="pods">
               Pods{podCount ? ` (${podCount}${pods.list.continueToken ? "+" : ""})` : ""}
@@ -301,8 +306,6 @@ export function ResourceDetailView({
               related={related}
               pods={podsPreview}
               metrics={isPod ? metrics : undefined}
-              forwardPorts={forwardPorts}
-              contextId={contextId}
               onOpenEvents={() => setTab("events")}
               onOpenRelated={() => setTab("related")}
               onOpenPods={workload ? () => setTab("pods") : undefined}
@@ -312,6 +315,20 @@ export function ResourceDetailView({
               onUpdateImage={canMutate && actionIds.has("image") ? () => openOperation("image") : undefined}
             />
           </TabsContent>
+
+          {canForward && (
+            <TabsContent value="ports">
+              <section className="resource-detail-section port-forward-section">
+                <PortForwardSection
+                  contextId={contextId}
+                  namespace={row!.namespace}
+                  name={row!.name}
+                  kind={row!.kind}
+                  ports={forwardPorts}
+                />
+              </section>
+            </TabsContent>
+          )}
 
           {workload && (
             <TabsContent value="pods">

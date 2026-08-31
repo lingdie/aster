@@ -253,6 +253,8 @@ export interface PortForwardStartRequest {
   target?: "pod" | "service" | "workload";
   /** Workload kind for target=workload. */
   kind?: string;
+  /** Local port to bind; 0/undefined picks a random free port. */
+  localPort?: number;
 }
 
 export type MutationOperation = "scale" | "image" | "restart" | "yaml" | "create" | "delete";

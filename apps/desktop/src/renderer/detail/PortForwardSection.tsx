@@ -21,10 +21,20 @@ export interface PortForwardSectionProps {
 export function PortForwardSection({ contextId, namespace, name, kind, ports }: PortForwardSectionProps) {
   const { start, stop, byKey } = usePortForwards(contextId);
   const [manualPort, setManualPort] = useState("");
+  const [localPorts, setLocalPorts] = useState<Record<number, string>>({});
   const targetKind: PortForwardTargetKind = kind === "Service" ? "service" : kind === "Pod" ? "pod" : "workload";
 
   function startForward(podPort: number) {
-    void start({ contextId, namespace, name, podPort, target: targetKind, kind });
+    const localPort = Number(localPorts[podPort]);
+    void start({
+      contextId,
+      namespace,
+      name,
+      podPort,
+      target: targetKind,
+      kind,
+      localPort: Number.isInteger(localPort) && localPort >= 1 && localPort <= 65_535 ? localPort : 0,
+    });
   }
 
   const manualValue = Number(manualPort);
@@ -65,16 +75,28 @@ export function PortForwardSection({ contextId, namespace, name, kind, ports }: 
                   </Button>
                 </>
               ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  data-testid="port-forward-start"
-                  disabled={entry?.busy}
-                  onClick={() => startForward(port.port)}
-                >
-                  {entry?.busy ? <LoaderCircle className="spin" aria-hidden="true" /> : <ArrowRightLeft aria-hidden="true" />}
-                  Forward
-                </Button>
+                <>
+                  <input
+                    className="port-forward-input"
+                    inputMode="numeric"
+                    placeholder="random"
+                    value={localPorts[port.port] ?? ""}
+                    aria-label={`Local port for ${port.label} ${port.port}`}
+                    onChange={(event) =>
+                      setLocalPorts((current) => ({ ...current, [port.port]: event.target.value.replace(/[^0-9]/g, "").slice(0, 5) }))
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    data-testid="port-forward-start"
+                    disabled={entry?.busy}
+                    onClick={() => startForward(port.port)}
+                  >
+                    {entry?.busy ? <LoaderCircle className="spin" aria-hidden="true" /> : <ArrowRightLeft aria-hidden="true" />}
+                    Forward
+                  </Button>
+                </>
               )}
             </div>
           );
@@ -131,4 +153,3 @@ function CopyLocalButton({ port }: { port: number }) {
     </button>
   );
 }
-
