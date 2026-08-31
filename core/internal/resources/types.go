@@ -187,6 +187,9 @@ type PortForwardRequest struct {
 	// Kind names the workload kind for target=workload (Deployment,
 	// StatefulSet, DaemonSet, ReplicaSet).
 	Kind string `json:"kind,omitempty"`
+	// LocalPort binds the forward to a specific local port; 0 picks a random
+	// free port. This mirrors "kubectl port-forward 8080:80".
+	LocalPort int `json:"localPort,omitempty"`
 }
 
 type PortForwardResponse struct {

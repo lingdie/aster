@@ -52,7 +52,7 @@ type capturingPFProvider struct {
 	stop     func()
 }
 
-func (p *capturingPFProvider) PortForward(ctx context.Context, _, _, _ string, _ int64) (func(), int, error) {
+func (p *capturingPFProvider) PortForward(ctx context.Context, _, _, _ string, _, _ int64) (func(), int, error) {
 	p.captured = ctx
 	return p.stop, 43123, nil
 }

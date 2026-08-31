@@ -237,6 +237,9 @@ func validatePortForwardRequest(value resources.PortForwardRequest) error {
 	if value.PodPort < 1 || value.PodPort > 65_535 {
 		return fmt.Errorf("podPort must be between 1 and 65535")
 	}
+	if value.LocalPort < 0 || value.LocalPort > 65_535 {
+		return fmt.Errorf("localPort must be between 0 and 65535")
+	}
 	switch value.Target {
 	case "", "pod", "service", "workload":
 	default:

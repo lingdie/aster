@@ -98,7 +98,7 @@ type resolverPFProvider struct {
 	resolver *fakeResolver
 }
 
-func (p *resolverPFProvider) PortForward(_ context.Context, _, _, _ string, _ int64) (func(), int, error) {
+func (p *resolverPFProvider) PortForward(_ context.Context, _, _, _ string, _, _ int64) (func(), int, error) {
 	return func() {}, 43123, nil
 }
 

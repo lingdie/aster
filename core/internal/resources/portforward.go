@@ -13,7 +13,7 @@ import (
 // reclaimed on stop or context teardown. No state persists across restarts.
 
 type PortForwardProvider interface {
-	PortForward(ctx context.Context, contextID, namespace, name string, podPort int64) (stop func(), localPort int, err error)
+	PortForward(ctx context.Context, contextID, namespace, name string, podPort, localPort int64) (stop func(), boundPort int, err error)
 }
 
 // ForwardTargetResolver maps a Service or workload to the single backing pod
@@ -61,7 +61,7 @@ func (s *Service) StartPortForward(ctx context.Context, request PortForwardReque
 	if !ok {
 		return PortForwardResponse{}, invalid("port-forward provider is unavailable")
 	}
-	stop, localPort, err := provider.PortForward(ctx, request.ContextID, request.Namespace, podName, podPort)
+	stop, boundPort, err := provider.PortForward(ctx, request.ContextID, request.Namespace, podName, podPort, int64(request.LocalPort))
 	if err != nil {
 		return PortForwardResponse{}, err
 	}
@@ -69,7 +69,7 @@ func (s *Service) StartPortForward(ctx context.Context, request PortForwardReque
 	s.portForwardMu.Lock()
 	s.portForwards[id] = portForwardEntry{stop: stop}
 	s.portForwardMu.Unlock()
-	return PortForwardResponse{ID: id, LocalPort: localPort, Pod: resolved}, nil
+	return PortForwardResponse{ID: id, LocalPort: boundPort, Pod: resolved}, nil
 }
 
 var forwardWorkloadKinds = map[string]bool{
