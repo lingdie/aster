@@ -38,7 +38,7 @@ func TestResolveServiceForwardTargetPicksReadyEndpoint(t *testing.T) {
 			Ports: []discoveryv1.EndpointPort{{Name: &named, Port: &port80}},
 		},
 	)
-	pod, port, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "web", "service", "", 80)
+	pod, port, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "web", "Service", 80)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestResolveServiceForwardTargetNoReadyEndpoints(t *testing.T) {
 			Endpoints: []discoveryv1.Endpoint{{Conditions: discoveryv1.EndpointConditions{Ready: &notReady}, TargetRef: v1ObjectReference("Pod", "web")}},
 		},
 	)
-	if _, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "web", "service", "", 80); err == nil {
+	if _, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "web", "Service", 80); err == nil {
 		t.Fatal("expected no-ready-endpoints error")
 	}
 }
@@ -68,7 +68,7 @@ func TestResolveWorkloadForwardTargetUsesFullSelector(t *testing.T) {
 		podWithLabels("apps", "api-b", map[string]string{"app": "api", "tier": "cache"}, corev1.PodRunning, true),
 		podWithLabels("apps", "api-c", map[string]string{"app": "api", "tier": "web"}, corev1.PodPending, false),
 	)
-	pod, port, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "workload", "Deployment", 8080)
+	pod, port, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "Deployment", 8080)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestResolveWorkloadForwardTargetNoMatch(t *testing.T) {
 		appsv1Deployment("apps", "api", map[string]string{"app": "api"}, nil),
 		podWithLabels("apps", "other", map[string]string{"app": "other"}, corev1.PodRunning, true),
 	)
-	if _, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "workload", "Deployment", 8080); err == nil {
+	if _, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "Deployment", 8080); err == nil {
 		t.Fatal("expected no-match error")
 	}
 }
@@ -96,7 +96,7 @@ func TestResolveWorkloadForwardTargetPrefersRunning(t *testing.T) {
 		podWithLabels("apps", "api-pending", map[string]string{"app": "api"}, corev1.PodPending, false),
 		podWithLabels("apps", "api-running", map[string]string{"app": "api"}, corev1.PodRunning, true),
 	)
-	pod, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "workload", "Deployment", 80)
+	pod, _, err := manager.ResolveForwardTarget(context.Background(), "dev", "apps", "api", "Deployment", 80)
 	if err != nil {
 		t.Fatal(err)
 	}

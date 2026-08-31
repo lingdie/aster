@@ -12,14 +12,14 @@ import (
 )
 
 type fakeResolver struct {
-	podName  string
-	podPort  int64
-	err      error
-	calledWith PortForwardRequest
+	podName    string
+	podPort    int64
+	err        error
+	calledKind string
 }
 
-func (f *fakeResolver) ResolveForwardTarget(_ context.Context, _, _, _, target, _ string, _ int64) (string, int64, error) {
-	f.calledWith.Target = target
+func (f *fakeResolver) ResolveForwardTarget(_ context.Context, _, _, _, kind string, _ int64) (string, int64, error) {
+	f.calledKind = kind
 	return f.podName, f.podPort, f.err
 }
 
@@ -30,13 +30,13 @@ func TestStartPortForwardResolvesServiceTarget(t *testing.T) {
 	provider := &resolverPFProvider{fakeProvider: fakeProvider{client: fake.NewSimpleDynamicClient(runtime.NewScheme())}, resolver: resolver}
 	service := NewService(provider)
 	result, err := service.StartPortForward(context.Background(), PortForwardRequest{
-		ContextID: "dev", Namespace: "apps", Name: "svc", PodPort: 80, Target: "service",
+		ContextID: "dev", Namespace: "apps", Name: "svc", PodPort: 80, Kind: "Service",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolver.calledWith.Target != "service" {
-		t.Fatalf("resolver saw target %q", resolver.calledWith.Target)
+	if resolver.calledKind != "Service" {
+		t.Fatalf("resolver saw kind %q", resolver.calledKind)
 	}
 	if result.Pod != "web-abc123" {
 		t.Fatalf("result.Pod = %q", result.Pod)
@@ -55,29 +55,29 @@ func TestStartPortForwardWorkloadUsesFullSelector(t *testing.T) {
 	// The fake resolver stands in for service targets; workload resolution
 	// happens in session.Manager. Here we assert the request wiring only.
 	if _, err := service.StartPortForward(context.Background(), PortForwardRequest{
-		ContextID: "dev", Namespace: "apps", Name: "dep", PodPort: 80, Target: "workload", Kind: "Deployment",
+		ContextID: "dev", Namespace: "apps", Name: "dep", PodPort: 80, Kind: "Deployment",
 	}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestStartPortForwardRejectsUnknownTarget(t *testing.T) {
+func TestStartPortForwardRejectsUnknownKind(t *testing.T) {
 	provider := &resolverPFProvider{fakeProvider: fakeProvider{client: fake.NewSimpleDynamicClient(runtime.NewScheme())}, resolver: &fakeResolver{}}
 	service := NewService(provider)
 	if _, err := service.StartPortForward(context.Background(), PortForwardRequest{
-		ContextID: "dev", Namespace: "apps", Name: "p", PodPort: 80, Target: "cronjob",
+		ContextID: "dev", Namespace: "apps", Name: "p", PodPort: 80, Kind: "CronJob",
 	}); err == nil {
-		t.Fatal("unknown target accepted")
+		t.Fatal("unknown kind accepted")
 	}
 }
 
-func TestStartPortForwardRejectsNonWorkloadKind(t *testing.T) {
+func TestStartPortForwardRejectsConfigMapKind(t *testing.T) {
 	provider := &resolverPFProvider{fakeProvider: fakeProvider{client: fake.NewSimpleDynamicClient(runtime.NewScheme())}, resolver: &fakeResolver{}}
 	service := NewService(provider)
 	if _, err := service.StartPortForward(context.Background(), PortForwardRequest{
-		ContextID: "dev", Namespace: "apps", Name: "cj", PodPort: 80, Target: "workload", Kind: "CronJob",
+		ContextID: "dev", Namespace: "apps", Name: "cm", PodPort: 80, Kind: "ConfigMap",
 	}); err == nil {
-		t.Fatal("non-workload kind accepted")
+		t.Fatal("configmap kind accepted")
 	}
 }
 
@@ -102,8 +102,8 @@ func (p *resolverPFProvider) PortForward(_ context.Context, _, _, _ string, _, _
 	return func() {}, 43123, nil
 }
 
-func (p *resolverPFProvider) ResolveForwardTarget(ctx context.Context, contextID, namespace, name, target, kind string, podPort int64) (string, int64, error) {
-	return p.resolver.ResolveForwardTarget(ctx, contextID, namespace, name, target, kind, podPort)
+func (p *resolverPFProvider) ResolveForwardTarget(ctx context.Context, contextID, namespace, name, kind string, podPort int64) (string, int64, error) {
+	return p.resolver.ResolveForwardTarget(ctx, contextID, namespace, name, kind, podPort)
 }
 
 var _ = func() func() { return func() {} }()

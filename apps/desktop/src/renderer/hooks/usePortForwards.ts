@@ -2,12 +2,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { desktop } from "../lib/desktop";
 import type { PodPortForward, PortForwardStartRequest } from "../../shared/types";
 
-/** Kinds of object a forward can target; mirrors core's target field. */
-export type PortForwardTargetKind = "pod" | "service" | "workload";
-
 export interface PortForwardEntry {
   key: string;
-  targetKind: PortForwardTargetKind;
   kind: string;
   namespace: string;
   name: string;
@@ -20,8 +16,8 @@ export interface PortForwardEntry {
   busy: boolean;
 }
 
-export function forwardKey(targetKind: PortForwardTargetKind, namespace: string, name: string, podPort: number): string {
-  return `${targetKind}|${namespace}|${name}|${podPort}`;
+export function forwardKey(kind: string, namespace: string, name: string, podPort: number): string {
+  return `${kind}|${namespace}|${name}|${podPort}`;
 }
 
 interface StoreState {
@@ -46,14 +42,13 @@ function ensureContext(contextId: string) {
 }
 
 export async function startPortForward(request: PortForwardStartRequest): Promise<void> {
-  const targetKind: PortForwardTargetKind = request.target ?? "pod";
-  const key = forwardKey(targetKind, request.namespace, request.name, request.podPort);
+  const kind = request.kind || "Pod";
+  const key = forwardKey(kind, request.namespace, request.name, request.podPort);
   const existing = state.entries.get(key);
   if (existing?.busy || existing?.localPort) return;
   const entry: PortForwardEntry = {
     key,
-    targetKind,
-    kind: request.kind ?? "",
+    kind,
     namespace: request.namespace,
     name: request.name,
     podPort: request.podPort,

@@ -20,7 +20,6 @@ type PortForwardTarget struct {
 	Namespace string
 	Name      string
 	PodPort   int64
-	Target    string
 	Kind      string
 }
 
@@ -40,15 +39,15 @@ var forwardWorkloadKinds = map[string]bool{
 // EndpointSlices (falling back to legacy Endpoints), which sidesteps
 // selector translation entirely; workload resolution uses the full
 // spec.selector, including matchExpressions.
-func (m *Manager) ResolveForwardTarget(ctx context.Context, contextID, namespace, name, target, kind string, podPort int64) (string, int64, error) {
-	request := PortForwardTarget{Namespace: namespace, Name: name, PodPort: podPort, Target: target, Kind: kind}
-	switch request.Target {
-	case "service":
+func (m *Manager) ResolveForwardTarget(ctx context.Context, contextID, namespace, name, kind string, podPort int64) (string, int64, error) {
+	request := PortForwardTarget{Namespace: namespace, Name: name, PodPort: podPort, Kind: kind}
+	switch request.Kind {
+	case "Service":
 		return m.resolveServiceForwardTarget(ctx, contextID, request)
-	case "workload":
+	case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet":
 		return m.resolveWorkloadForwardTarget(ctx, contextID, request)
 	default:
-		return "", 0, fmt.Errorf("unsupported forward target %q", request.Target)
+		return "", 0, fmt.Errorf("%q cannot be resolved to a backing pod", request.Kind)
 	}
 }
 
@@ -222,4 +221,3 @@ func podForwardRank(pod *corev1.Pod) int {
 	}
 	return rank
 }
-

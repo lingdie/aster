@@ -19,7 +19,7 @@ type PortForwardProvider interface {
 // ForwardTargetResolver maps a Service or workload to the single backing pod
 // that a forward terminates on, translating named ports to numbers.
 type ForwardTargetResolver interface {
-	ResolveForwardTarget(ctx context.Context, contextID, namespace, name, target, kind string, podPort int64) (podName string, resolvedPort int64, err error)
+	ResolveForwardTarget(ctx context.Context, contextID, namespace, name, kind string, podPort int64) (podName string, resolvedPort int64, err error)
 }
 
 type portForwardEntry struct {
@@ -33,25 +33,22 @@ func (s *Service) StartPortForward(ctx context.Context, request PortForwardReque
 	if request.PodPort < 1 || request.PodPort > 65_535 {
 		return PortForwardResponse{}, invalid("podPort must be between 1 and 65535")
 	}
-	target := request.Target
-	if target == "" {
-		target = "pod"
+	kind := request.Kind
+	if kind == "" {
+		kind = "Pod"
 	}
-	if target != "pod" && target != "service" && target != "workload" {
-		return PortForwardResponse{}, invalid("target must be pod, service, or workload")
-	}
-	if target == "workload" && !forwardWorkloadKinds[request.Kind] {
-		return PortForwardResponse{}, invalid(fmt.Sprintf("%q is not a workload that can be forwarded", request.Kind))
+	if !forwardKinds[kind] {
+		return PortForwardResponse{}, invalid(fmt.Sprintf("%q cannot be port-forwarded", kind))
 	}
 	podName, podPort := request.Name, request.PodPort
 	resolved := ""
-	if target != "pod" {
+	if kind != "Pod" {
 		resolver, ok := s.clients.(ForwardTargetResolver)
 		if !ok {
 			return PortForwardResponse{}, invalid("forward target resolver is unavailable")
 		}
 		var err error
-		podName, podPort, err = resolver.ResolveForwardTarget(ctx, request.ContextID, request.Namespace, request.Name, target, request.Kind, request.PodPort)
+		podName, podPort, err = resolver.ResolveForwardTarget(ctx, request.ContextID, request.Namespace, request.Name, kind, request.PodPort)
 		if err != nil {
 			return PortForwardResponse{}, err
 		}
@@ -72,7 +69,9 @@ func (s *Service) StartPortForward(ctx context.Context, request PortForwardReque
 	return PortForwardResponse{ID: id, LocalPort: boundPort, Pod: resolved}, nil
 }
 
-var forwardWorkloadKinds = map[string]bool{
+var forwardKinds = map[string]bool{
+	"Pod":         true,
+	"Service":     true,
 	"Deployment":  true,
 	"StatefulSet": true,
 	"DaemonSet":   true,

@@ -249,9 +249,8 @@ export interface PortForwardStartRequest {
   namespace: string;
   name: string;
   podPort: number;
-  /** What name refers to: pod (default), service, or workload. */
-  target?: "pod" | "service" | "workload";
-  /** Workload kind for target=workload. */
+  /** Kubernetes kind of the named object; routes the forward like kubectl's
+   *  svc/x, deploy/x, pod/x prefixes. Empty means Pod. */
   kind?: string;
   /** Local port to bind; 0/undefined picks a random free port. */
   localPort?: number;

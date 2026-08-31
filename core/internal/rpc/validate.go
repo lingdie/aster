@@ -240,19 +240,10 @@ func validatePortForwardRequest(value resources.PortForwardRequest) error {
 	if value.LocalPort < 0 || value.LocalPort > 65_535 {
 		return fmt.Errorf("localPort must be between 0 and 65535")
 	}
-	switch value.Target {
-	case "", "pod", "service", "workload":
+	switch value.Kind {
+	case "", "Pod", "Service", "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet":
 	default:
-		return fmt.Errorf("target must be pod, service, or workload")
-	}
-	if value.Target == "workload" {
-		switch value.Kind {
-		case "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet":
-		default:
-			return fmt.Errorf("kind must be a selector-based workload for target=workload")
-		}
-	} else if value.Kind != "" {
-		return fmt.Errorf("kind is only valid with target=workload")
+		return fmt.Errorf("%q cannot be port-forwarded", value.Kind)
 	}
 	return nil
 }

@@ -2,7 +2,7 @@ import { ArrowRightLeft, Check, Copy, LoaderCircle, Square } from "lucide-react"
 import { useState } from "react";
 
 import { Button } from "../components/ui/button";
-import { forwardKey, usePortForwards, type PortForwardTargetKind } from "../hooks/usePortForwards";
+import { forwardKey, usePortForwards } from "../hooks/usePortForwards";
 import type { ForwardPort } from "./port-forward-ports";
 
 export interface PortForwardSectionProps {
@@ -22,8 +22,6 @@ export function PortForwardSection({ contextId, namespace, name, kind, ports }: 
   const { start, stop, byKey } = usePortForwards(contextId);
   const [manualPort, setManualPort] = useState("");
   const [localPorts, setLocalPorts] = useState<Record<number, string>>({});
-  const targetKind: PortForwardTargetKind = kind === "Service" ? "service" : kind === "Pod" ? "pod" : "workload";
-
   function startForward(podPort: number) {
     const localPort = Number(localPorts[podPort]);
     void start({
@@ -31,7 +29,6 @@ export function PortForwardSection({ contextId, namespace, name, kind, ports }: 
       namespace,
       name,
       podPort,
-      target: targetKind,
       kind,
       localPort: Number.isInteger(localPort) && localPort >= 1 && localPort <= 65_535 ? localPort : 0,
     });
@@ -51,7 +48,7 @@ export function PortForwardSection({ contextId, namespace, name, kind, ports }: 
 
       <div className="port-forward-rows">
         {ports.map((port) => {
-          const key = forwardKey(targetKind, namespace, name, port.port);
+          const key = forwardKey(kind, namespace, name, port.port);
           const entry = byKey(key);
           return (
             <div className="port-forward-row" key={key} data-testid="port-forward-row">
@@ -128,7 +125,7 @@ export function PortForwardSection({ contextId, namespace, name, kind, ports }: 
       </div>
 
       <p className="port-forward-status" role="status" aria-live="polite">
-        {[...new Set(ports.map((port) => byKey(forwardKey(targetKind, namespace, name, port.port))?.error).filter(Boolean))].join(" · ")}
+        {[...new Set(ports.map((port) => byKey(forwardKey(kind, namespace, name, port.port))?.error).filter(Boolean))].join(" · ")}
       </p>
     </section>
   );

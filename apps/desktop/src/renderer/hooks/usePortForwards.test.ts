@@ -26,7 +26,7 @@ describe("port forward store", () => {
   it("starts a forward and records the local port", async () => {
     startMock.mockResolvedValue({ id: "pf-1", localPort: 49152, pod: "web-a" });
     await startPortForward(baseRequest);
-    const entry = getPortForwardSnapshotForTests().get(forwardKey("pod", "apps", "web", 8080));
+    const entry = getPortForwardSnapshotForTests().get(forwardKey("Pod", "apps", "web", 8080));
     expect(entry?.localPort).toBe(49152);
     expect(entry?.id).toBe("pf-1");
     expect(entry?.pod).toBe("web-a");
@@ -47,7 +47,7 @@ describe("port forward store", () => {
   it("records start failures on the entry", async () => {
     startMock.mockRejectedValue(new Error("no ready endpoints"));
     await startPortForward(baseRequest);
-    const entry = getPortForwardSnapshotForTests().get(forwardKey("pod", "apps", "web", 8080));
+    const entry = getPortForwardSnapshotForTests().get(forwardKey("Pod", "apps", "web", 8080));
     expect(entry?.error).toContain("no ready endpoints");
     expect(entry?.localPort).toBeUndefined();
   });
@@ -55,7 +55,7 @@ describe("port forward store", () => {
   it("stops a forward and removes the entry", async () => {
     startMock.mockResolvedValue({ id: "pf-1", localPort: 49152 });
     await startPortForward(baseRequest);
-    const key = forwardKey("pod", "apps", "web", 8080);
+    const key = forwardKey("Pod", "apps", "web", 8080);
     await stopPortForward(key);
     expect(stopMock).toHaveBeenCalledWith("pf-1");
     expect(getPortForwardSnapshotForTests().get(key)).toBeUndefined();
@@ -64,7 +64,7 @@ describe("port forward store", () => {
   it("stops a failed forward without calling the backend", async () => {
     startMock.mockRejectedValue(new Error("boom"));
     await startPortForward(baseRequest);
-    const key = forwardKey("pod", "apps", "web", 8080);
+    const key = forwardKey("Pod", "apps", "web", 8080);
     await stopPortForward(key);
     expect(stopMock).not.toHaveBeenCalled();
     expect(getPortForwardSnapshotForTests().get(key)).toBeUndefined();
