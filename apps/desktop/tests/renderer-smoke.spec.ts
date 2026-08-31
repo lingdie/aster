@@ -1354,6 +1354,25 @@ test("pod detail forwards a declared port and stops it", async ({ page }) => {
   // An empty local port falls back to a random free port first.
   await portRow.getByTestId("port-forward-start").click();
   await expect(portRow.getByTestId("port-forward-local")).toContainText("localhost:12345");
+
+  // The manual row's controls align vertically with the declared rows.
+  const rowGeometry = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll(".port-forward-row")];
+    return rows.map((row) => {
+      const rr = row.getBoundingClientRect();
+      return [...row.children].map((k) => {
+        const b = k.getBoundingClientRect();
+        return { tag: k.tagName, height: Math.round(b.height), topGap: Math.round(b.top - rr.top), bottomGap: Math.round(rr.bottom - b.bottom) };
+      });
+    });
+  });
+  const alignTolerance = 4;
+  for (const row of rowGeometry) {
+    for (const el of row) {
+      if (el.tag === "SPAN") continue;
+      expect(Math.abs(el.topGap - el.bottomGap), `row control ${el.tag} not vertically centered (${el.topGap}/${el.bottomGap})`).toBeLessThanOrEqual(alignTolerance);
+    }
+  }
   await portRow.getByTestId("port-forward-stop").click();
   await expect(portRow.getByTestId("port-forward-start")).toBeVisible();
 
